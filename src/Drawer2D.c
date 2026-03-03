@@ -19,6 +19,33 @@
 struct _Drawer2DData Drawer2D;
 #define Font_IsBitmap(font) (!(font)->handle)
 
+static struct Bitmap fontBitmap;
+static struct Bitmap russianBitmap; /* ADD THIS LINE */
+static int tileSize = 8;
+
+static int russianWidths[256]; /* Stores widths for Russian letters */
+
+static void CalculateRussianWidths(void) {
+	int width = russianBitmap.width, height = russianBitmap.height;
+	int tileRSz = width >> 4; /* 16 tiles per row */
+	BitmapCol* row;
+	int i, x, y, xx, tileY;
+
+	for (y = 0; y < height; y++) {
+		tileY = y / tileRSz;
+		row   = Bitmap_GetRow(&russianBitmap, y);
+		i     = 0 | (tileY << 4);
+
+		for (x = 0; x < width; x += tileRSz, i++) {
+			for (xx = tileRSz - 1; xx >= 0; xx--) {
+				if (!BitmapCol_A(row[x + xx])) continue;
+				russianWidths[i] = max(russianWidths[i], xx + 1);
+				break;
+			}
+		}
+	}
+}
+
 void DrawTextArgs_Make(struct DrawTextArgs* args, STRING_REF const cc_string* text, struct FontDesc* font, cc_bool useShadow) {
 	args->text = *text;
 	args->font = font;
@@ -622,18 +649,18 @@ int Font_CalcHeight(const struct FontDesc* font, cc_bool useShadow) {
 
 /* This tells the game how to handle russian.png when it's found in a texture pack */
 static void RussianPngProcess(struct Stream* stream, const cc_string* name) {
-    struct Bitmap bmp;
-    cc_result res;
+	struct Bitmap bmp;
+	cc_result res;
 
-    if ((res = Png_Decode(&bmp, stream))) {
-        Logger_SysWarn2(res, "decoding", name);
-        Mem_Free(bmp.scan0);
-    } else {
-        /* Store this in a new bitmap variable we created */
-        russianBitmap = bmp; 
-        /* We might need to calculate widths for this too */
-        CalculateRussianWidths(); 
-    }
+	if ((res = Png_Decode(&bmp, stream))) {
+		Logger_SysWarn2(res, "decoding", name);
+		Mem_Free(bmp.scan0);
+	} else {
+		/* Free old one if it exists to prevent memory leaks */
+		Mem_Free(russianBitmap.scan0);
+		russianBitmap = bmp;
+		CalculateRussianWidths(); 
+	}
 }
 
 static struct TextureEntry russian_entry = { "russian.png", RussianPngProcess };
@@ -744,5 +771,6 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
