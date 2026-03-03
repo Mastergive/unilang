@@ -69,9 +69,11 @@ static void CloseLogFile(void) {
 
 /* Whether the given character is an allowed in a log filename */
 static cc_bool AllowedLogNameChar(char c) {
+	unsigned char uc = (unsigned char)c;
 	return
-		c == '{' || c == '}' || c == '[' || c == ']' || c == '(' || c == ')' ||
-		(c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+		uc == '{' || uc == '}' || uc == '[' || uc == ']' || uc == '(' || uc == ')' ||
+        (uc >= '0' && uc <= '9') || (uc >= 'a' && uc <= 'z') || (uc >= 'A' && uc <= 'Z') ||
+        (uc >= 128); /* This allows extended characters/UTF-8 bytes */
 }
 
 void Chat_SetLogName(const cc_string* name) {
@@ -314,3 +316,4 @@ struct IGameComponent Chat_Component = {
 	OnFree, /* Free  */
 	OnReset /* Reset */
 };
+
