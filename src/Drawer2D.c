@@ -21,7 +21,7 @@ struct _Drawer2DData Drawer2D;
 
 static struct Bitmap fontBitmap;
 static struct Bitmap russianBitmap; /* ADD THIS LINE */
-static int tileSize = 8;
+static int russianTileSize = 8; /* For russian.png - ADD THIS */
 
 static int russianWidths[256]; /* Stores widths for Russian letters */
 
@@ -771,6 +771,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
