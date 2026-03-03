@@ -620,6 +620,24 @@ int Font_CalcHeight(const struct FontDesc* font, cc_bool useShadow) {
 	return height;
 }
 
+/* This tells the game how to handle russian.png when it's found in a texture pack */
+static void RussianPngProcess(struct Stream* stream, const cc_string* name) {
+    struct Bitmap bmp;
+    cc_result res;
+
+    if ((res = Png_Decode(&bmp, stream))) {
+        Logger_SysWarn2(res, "decoding", name);
+        Mem_Free(bmp.scan0);
+    } else {
+        /* Store this in a new bitmap variable we created */
+        russianBitmap = bmp; 
+        /* We might need to calculate widths for this too */
+        CalculateRussianWidths(); 
+    }
+}
+
+static struct TextureEntry russian_entry = { "russian.png", RussianPngProcess };
+
 void Drawer2D_DrawClippedText(struct Context2D* ctx, struct DrawTextArgs* args,
 								int x, int y, int maxWidth) {
 	char strBuffer[512];
@@ -725,3 +743,4 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
