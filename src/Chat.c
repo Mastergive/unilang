@@ -205,7 +205,7 @@ void Chat_AddRaw(const char* raw) {
 	cc_string str = String_FromReadonly(raw);
 	Chat_AddOf(&str, MSG_TYPE_NORMAL);
 }
-void Chat_Add(const cc_string* text) { Chat_AddOf(text, MSG_TYPE_NORMAL); }
+void Chat_Add(const cc_string* text) { Platform_Log1("[DEBUG] Chat received text of length: %i", &text->length); Chat_AddOf(text, MSG_TYPE_NORMAL); }
 
 void Chat_AddOf(const cc_string* text, int msgType) {
 	cc_string str;
@@ -316,4 +316,5 @@ struct IGameComponent Chat_Component = {
 	OnFree, /* Free  */
 	OnReset /* Reset */
 };
+
 
