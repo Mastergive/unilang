@@ -496,23 +496,49 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 	cc_uint8 coords[DRAWER2D_MAX_TEXT_LENGTH];
 	BitmapCol colors[DRAWER2D_MAX_TEXT_LENGTH];
 	cc_uint16 dstWidths[DRAWER2D_MAX_TEXT_LENGTH];
+	cc_bool isRussianChar[DRAWER2D_MAX_TEXT_LENGTH];
 
 	color = Drawer2D.Colors['f'];
 	if (shadow) color = GetShadowColor(color);
 
 	for (i = 0; i < text.length; i++) {
-		char c = text.buffer[i];
-		if (c == '&' && Drawer2D_ValidColorCodeAt(&text, i + 1)) {
-			color = Drawer2D_GetColor(text.buffer[i + 1]);
+        unsigned char c = (unsigned char)text.buffer[i];
+        
+        /* Handle Color Codes */
+        if (c == '&' && Drawer2D_ValidColorCodeAt(&text, i + 1)) {
+            color = Drawer2D_GetColor(text.buffer[i + 1]);
+            if (shadow) color = GetShadowColor(color);
+            i++; continue;
+        }
 
-			if (shadow) color = GetShadowColor(color);
-			i++; continue; /* skip over the color code */
-		}
+        int finalIndex = c;
+        cc_bool russian = false;
 
-		coords[count] = c;
-		colors[count] = color;
-		dstWidths[count] = Drawer2D_Width(point, c);
-		count++;
+        /* UTF-8 Decode for Russian (Bytes starting with 0xD0 or 0xD1) */
+        if (c >= 0xD0 && c <= 0xD1 && (i + 1) < text.length) {
+            unsigned char second = (unsigned char)text.buffer[i + 1];
+            int codepoint = ((c & 0x1F) << 6) | (second & 0x3F);
+
+            /* Check if it's in the Cyrillic Unicode range */
+            if (codepoint >= 0x0410 && codepoint <= 0x044F) {
+                finalIndex = codepoint - 0x0410; // 'А' becomes index 0
+                russian = true;
+                i++; // Skip the second byte
+            }
+        }
+
+        coords[count] = (cc_uint8)finalIndex;
+        colors[count] = color;
+        isRussianChar[count] = russian;
+        
+        /* Calculate width based on which atlas we are using */
+        if (russian) {
+            dstWidths[count] = Math_CeilDiv(russianWidths[finalIndex] * point, russianTileSize);
+        } else {
+            dstWidths[count] = Drawer2D_Width(point, (char)finalIndex);
+        }
+        count++;
+
 	}
 
 	dstHeight = point; begX = x;
@@ -524,15 +550,22 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 		dstY = y + yy;
 		if ((unsigned)dstY >= (unsigned)bmp->height) continue;
 
-		fontY  = 0 + yy * tileSize / dstHeight;
 		dstRow = Bitmap_GetRow(bmp, dstY);
 
 		for (i = 0; i < count; i++) {
-			srcX   = (coords[i] & 0x0F) * tileSize;
-			srcY   = (coords[i] >> 4)   * tileSize;
-			srcRow = Bitmap_GetRow(&fontBitmap, fontY + srcY);
+			/* PICK THE RIGHT ATLAS AND SIZE FOR THIS CHARACTER */
+			struct Bitmap* atlas = isRussianChar[i] ? &russianBitmap : &fontBitmap;
+			int curTileSize      = isRussianChar[i] ? russianTileSize : tileSize;
+			int* curWidths       = isRussianChar[i] ? russianWidths : tileWidths;
 
-			srcWidth = tileWidths[coords[i]];
+			/* Calculate fontY specifically for this atlas */
+			fontY  = yy * curTileSize / dstHeight;
+
+			srcX   = (coords[i] & 0x0F) * curTileSize;
+			srcY   = (coords[i] >> 4)   * curTileSize;
+			srcRow = Bitmap_GetRow(atlas, fontY + srcY);
+
+			srcWidth = curWidths[coords[i]];
 			dstWidth = dstWidths[i];
 			color    = colors[i];
 
@@ -544,9 +577,6 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 				dstX = x + xx;
 				if ((unsigned)dstX >= (unsigned)bmp->width) continue;
 
-				/* TODO: Transparent text by multiplying by col.A */
-				/* TODO: Not shift when multiplying */
-				/* TODO: avoid BitmapCol_A shift */
 				dstRow[dstX] = BitmapCol_Make(
 					BitmapCol_R(src) * BitmapCol_R(color) / 255,
 					BitmapCol_G(src) * BitmapCol_G(color) / 255,
@@ -771,6 +801,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
