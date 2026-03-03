@@ -728,6 +728,7 @@ static void OnReset(void) {
 static void OnInit(void) {
 	OnReset();
 	TextureEntry_Register(&default_entry);
+	TextureEntry_Register(&russian_entry);
 
 	Drawer2D.BitmappedText    = Game_ClassicMode || !Options_GetBool(OPT_USE_CHAT_FONT, false);
 	Drawer2D.BlackTextShadows = Options_GetBool(OPT_BLACK_TEXT, false);
@@ -743,4 +744,5 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
