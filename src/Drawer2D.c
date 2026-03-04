@@ -20,7 +20,7 @@ struct _Drawer2DData Drawer2D;
 #define Font_IsBitmap(font) (!(font)->handle)
 
 static struct Bitmap fontBitmap;
-static struct Bitmap russianBitmap; /* ADD THIS LINE */
+static struct Bitmap russianBitmap = { NULL, 0, 0 }; /* ADD THIS LINE */
 static int russianTileSize = 8; /* For russian.png - ADD THIS */
 
 static int russianWidths[256]; /* Stores widths for Russian letters */
@@ -546,46 +546,51 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 	y += (args->font->height - dstHeight) / 2;
 	xPadding  = Drawer2D_XPadding(point);
 
+	
+
 	for (yy = 0; yy < dstHeight; yy++) {
-		dstY = y + yy;
-		if ((unsigned)dstY >= (unsigned)bmp->height) continue;
+        dstY = y + yy;
+        if ((unsigned)dstY >= (unsigned)bmp->height) continue;
+        dstRow = Bitmap_GetRow(bmp, dstY);
 
-		dstRow = Bitmap_GetRow(bmp, dstY);
+        for (i = 0; i < count; i++) {
+            /* 1. SAFETY & SWITCH LOGIC */
+            /* Only use russianBitmap if it actually exists in memory (scan0 != NULL) */
+            cc_bool useRussian = isRussianChar[i] && russianBitmap.scan0;
+            
+            struct Bitmap* atlas = useRussian ? &russianBitmap : &fontBitmap;
+            int curTileSize      = useRussian ? russianTileSize : tileSize;
+            int* curWidths       = useRussian ? russianWidths : tileWidths;
 
-		for (i = 0; i < count; i++) {
-			/* PICK THE RIGHT ATLAS AND SIZE FOR THIS CHARACTER */
-			struct Bitmap* atlas = (isRussianChar[i] && russianBitmap.scan0) ? &russianBitmap : &fontBitmap; 
-			int curTileSize      = isRussianChar[i] ? russianTileSize : tileSize;
-			int* curWidths       = isRussianChar[i] ? russianWidths : tileWidths;
+            fontY  = yy * curTileSize / dstHeight;
+            srcX   = (coords[i] & 0x0F) * curTileSize;
+            srcY   = (coords[i] >> 4)   * curTileSize;
+            
+            /* Use the atlas we picked above */
+            srcRow = Bitmap_GetRow(atlas, fontY + srcY);
 
-			/* Calculate fontY specifically for this atlas */
-			fontY  = yy * curTileSize / dstHeight;
+            srcWidth = curWidths[coords[i]];
+            dstWidth = dstWidths[i];
+            color    = colors[i];
 
-			srcX   = (coords[i] & 0x0F) * curTileSize;
-			srcY   = (coords[i] >> 4)   * curTileSize;
-			srcRow = Bitmap_GetRow(atlas, fontY + srcY);
+            for (xx = 0; xx < dstWidth; xx++) {
+                fontX = srcX + xx * srcWidth / dstWidth;
+                src   = srcRow[fontX];
+                if (!BitmapCol_A(src)) continue;
 
-			srcWidth = curWidths[coords[i]];
-			dstWidth = dstWidths[i];
-			color    = colors[i];
+                dstX = x + xx;
+                if ((unsigned)dstX >= (unsigned)bmp->width) continue;
 
-			for (xx = 0; xx < dstWidth; xx++) {
-				fontX = srcX + xx * srcWidth / dstWidth;
-				src   = srcRow[fontX];
-				if (!BitmapCol_A(src)) continue;
-
-				dstX = x + xx;
-				if ((unsigned)dstX >= (unsigned)bmp->width) continue;
-
-				dstRow[dstX] = BitmapCol_Make(
-					BitmapCol_R(src) * BitmapCol_R(color) / 255,
-					BitmapCol_G(src) * BitmapCol_G(color) / 255,
-					BitmapCol_B(src) * BitmapCol_B(color) / 255,
-					BitmapCol_A(src));
-			}
-			x += dstWidth + xPadding;
-		}
-		x = begX;
+                dstRow[dstX] = BitmapCol_Make(
+                    BitmapCol_R(src) * BitmapCol_R(color) / 255,
+                    BitmapCol_G(src) * BitmapCol_G(color) / 255,
+                    BitmapCol_B(src) * BitmapCol_B(color) / 255,
+                    BitmapCol_A(src));
+            }
+            x += dstWidth + xPadding;
+        }
+        x = begX;
+    
 	}
 
 	if (!(args->font->flags & FONT_FLAGS_UNDERLINE)) return;
@@ -807,6 +812,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
