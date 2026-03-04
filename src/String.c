@@ -552,6 +552,7 @@ static cc_codepoint ReduceEmoji(cc_codepoint cp) {
 cc_bool Convert_TryCodepointToCP437(cc_codepoint cp, char* c) {
 	int i;
 	if (cp >= 0x20 && cp < 0x7F) { *c = (char)cp; return true; }
+	if (cp >= 0x0400 && cp <= 0x04FF) { *c = (char)cp; return true; }
 	if (cp >= 0x1F000) cp = ReduceEmoji(cp);
 
 	for (i = 0; i < Array_Elems(controlChars); i++) {
@@ -636,7 +637,15 @@ void String_AppendUtf8(cc_string* value, const void* data, int numBytes) {
 		len = Convert_Utf8ToCodepoint(&cp, chars, numBytes);
 		if (!len) return;
 
-		if (Convert_TryCodepointToCP437(cp, &c)) String_Append(value, c);
+		if (Convert_TryCodepointToCP437(cp, &c) || (cp >= 0x0400 && cp <= 0x04FF)) {
+             /* If it's Russian, we force the raw bytes in */
+             if (cp >= 0x0400) {
+                /* Append the two UTF-8 bytes directly */
+                for(int b = 0; b < len; b++) String_Append(value, chars[b]);
+             } else {
+                String_Append(value, c);
+             }
+        }
 		chars += len;
 	}
 }
@@ -951,6 +960,7 @@ void StringsBuffer_Sort(struct StringsBuffer* buffer) {
 *------------------------------------------------------Word wrapper-------------------------------------------------------*
 *#########################################################################################################################*/
 static cc_bool WordWrap_IsWrapper(char c) {
+	if ((unsigned char)c >= 128) return false;
 	return c == '\0' || c == ' ' || c == '-' || c == '>' || c == '<' || c == '/' || c == '\\';
 }
 
@@ -1031,3 +1041,4 @@ int WordWrap_GetForwardLength(const cc_string* text, int index) {
 
 	return index - start;
 }
+
