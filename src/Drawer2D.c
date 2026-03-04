@@ -514,16 +514,14 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
         int finalIndex = c;
         cc_bool russian = false;
 
-        /* UTF-8 Decode for Russian (Bytes starting with 0xD0 or 0xD1) */
         if (c >= 0xD0 && c <= 0xD1 && (i + 1) < text.length) {
             unsigned char second = (unsigned char)text.buffer[i + 1];
             int codepoint = ((c & 0x1F) << 6) | (second & 0x3F);
 
-            /* Check if it's in the Cyrillic Unicode range */
             if (codepoint >= 0x0410 && codepoint <= 0x044F) {
-                finalIndex = codepoint - 0x0410; // 'А' becomes index 0
+                finalIndex = codepoint - 0x0410; 
                 russian = true;
-                i++; // Skip the second byte
+                i++; // <--- This consumes the second byte (the '0' symbol)
             }
         }
 
@@ -531,12 +529,14 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
         colors[count] = color;
         isRussianChar[count] = russian;
         
-        /* Calculate width based on which atlas we are using */
+        /* Calculate width */
         if (russian) {
             dstWidths[count] = Math_CeilDiv(russianWidths[finalIndex] * point, russianTileSize);
         } else {
             dstWidths[count] = Drawer2D_Width(point, (char)finalIndex);
         }
+        
+        /* This count must only increase ONCE for the whole Russian letter */
         count++;
 
 	}
@@ -691,9 +691,13 @@ static void RussianPngProcess(struct Stream* stream, const cc_string* name) {
 		russianBitmap = bmp;
 		CalculateRussianWidths(); 
 	}
+
+	if (!russianBitmap.scan0) {
+    /* If this triggers, your russian.png is not loading! */
+    Platform_LogConst("WARNING: Russian texture not loaded!");
+}
 }
 
-static struct TextureEntry russian_entry = { "russian.png", RussianPngProcess };
 
 void Drawer2D_DrawClippedText(struct Context2D* ctx, struct DrawTextArgs* args,
 								int x, int y, int maxWidth) {
@@ -745,6 +749,8 @@ static void DefaultPngProcess(struct Stream* stream, const cc_string* name) {
 	}
 }
 static struct TextureEntry default_entry = { "default.png", DefaultPngProcess };
+static struct TextureEntry russian_entry = { "russian.png", RussianPngProcess };
+
 
 
 /* The default 16 colours are the CGA 16 color palette (without special brown colour) */
@@ -801,6 +807,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
