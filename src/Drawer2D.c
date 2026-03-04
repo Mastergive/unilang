@@ -22,7 +22,7 @@ struct _Drawer2DData Drawer2D;
 static struct Bitmap fontBitmap;
 static struct Bitmap russianBitmap = { NULL, 0, 0 }; /* ADD THIS LINE */
 static int russianTileSize = 8; /* For russian.png - ADD THIS */
-
+static cc_bool russianElements[DRAWER2D_MAX_TEXT_LENGTH];
 static int russianWidths[256]; /* Stores widths for Russian letters */
 
 static void CalculateRussianWidths(void) {
@@ -527,7 +527,7 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 
         coords[count] = (cc_uint8)finalIndex;
         colors[count] = color;
-        isRussianChar[count] = russian;
+        russianElements[count] = russian;
         
         /* Calculate width */
         if (russian) {
@@ -535,8 +535,7 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
         } else {
             dstWidths[count] = Drawer2D_Width(point, (char)finalIndex);
         }
-        
-        /* This count must only increase ONCE for the whole Russian letter */
+    
         count++;
 
 	}
@@ -556,7 +555,7 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
         for (i = 0; i < count; i++) {
             /* 1. SAFETY & SWITCH LOGIC */
             /* Only use russianBitmap if it actually exists in memory (scan0 != NULL) */
-            cc_bool useRussian = isRussianChar[i] && russianBitmap.scan0;
+            cc_bool useRussian = russianElements[i] && russianBitmap.scan0;
             
             struct Bitmap* atlas = useRussian ? &russianBitmap : &fontBitmap;
             int curTileSize      = useRussian ? russianTileSize : tileSize;
@@ -812,6 +811,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
