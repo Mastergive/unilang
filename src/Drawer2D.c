@@ -572,7 +572,7 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
             srcWidth = curWidths[coords[i]];
             dstWidth = dstWidths[i];
             color    = colors[i];
-
+            if (isRussianChar[i]) color = BitmapCol_Make(255, 0, 0, 255);
             for (xx = 0; xx < dstWidth; xx++) {
                 fontX = srcX + xx * srcWidth / dstWidth;
                 src   = srcRow[fontX];
@@ -812,6 +812,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
