@@ -554,7 +554,7 @@ static void DrawBitmappedTextCore(struct Bitmap* bmp, struct DrawTextArgs* args,
 
 		for (i = 0; i < count; i++) {
 			/* PICK THE RIGHT ATLAS AND SIZE FOR THIS CHARACTER */
-			struct Bitmap* atlas = isRussianChar[i] ? &russianBitmap : &fontBitmap;
+			struct Bitmap* atlas = &russianBitmap; // default: fontBitmap; i changed it to russianBitmap just for testing
 			int curTileSize      = isRussianChar[i] ? russianTileSize : tileSize;
 			int* curWidths       = isRussianChar[i] ? russianWidths : tileWidths;
 
@@ -807,6 +807,7 @@ struct IGameComponent Drawer2D_Component = {
 	OnFree,  /* Free  */
 	OnReset, /* Reset */
 };
+
 
 
 
