@@ -180,7 +180,7 @@ static LRESULT CALLBACK Window_Procedure(HWND handle, UINT message, WPARAM wPara
 
 	case WM_CHAR:
 		/* TODO: Use WM_UNICHAR instead, as WM_CHAR is just utf16 */
-		Event_RaiseInt(&InputEvents.Press, (cc_unichar)wParam);
+		Event_RaiseInt(&InputEvents.Press, (int)wParam);
 		break;
 
 	case WM_MOUSEMOVE:
@@ -969,3 +969,4 @@ void GLContext_SetVSync(cc_bool vsync) {
 void GLContext_GetApiInfo(cc_string* info) { }
 #endif
 #endif
+
