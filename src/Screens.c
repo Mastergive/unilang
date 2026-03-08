@@ -30,7 +30,7 @@
 #define CHAT_MAX_CLIENTSTATUS Array_Elems(Chat_ClientStatus)
 
 int Screen_FInput(void* s, int key, struct InputDevice* device) { return false; }
-int Screen_FKeyPress(void* s, char keyChar)     { return false; }
+int Screen_FKeyPress(void* s, int keyChar) { return false; }
 int Screen_FText(void* s, const cc_string* str) { return false; }
 int Screen_FMouseScroll(void* s, float delta)   { return false; }
 int Screen_FPointer(void* s, int id, int x, int y) { return false; }
@@ -2355,3 +2355,4 @@ void DisconnectScreen_Show(const cc_string* title, const cc_string* message) {
 		Gui_Remove(Gui_Screens[i]);
 	}
 }
+
